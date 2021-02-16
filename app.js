@@ -22,15 +22,45 @@ var allowCrossDomain = function(req, res, next) {
 };
 
 app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended : false}))
+
+app.get('/', (req,res)=>{
+    res.sendFile(__dirname + '/html/create/index.html')
+})
+
+app.post('/', (req,res)=>{
+    url = req.body.URL
+    path = req.body.Path
+    pathExist = false
+    if(!(url.startsWith('https://') || url.startsWith('http://')))url = `http://${url}`
+    test = () =>{for(our in data){
+        pathExist = (data[our].path === path)
+        if(pathExist){
+            desc = 'path already exist,so your path get up to 3 digit random number'
+            path += Math.floor(Math.random()*999)
+            test()
+            break
+        }
+    }};test()
+    data.push({url:url,path:path})
+    fs.writeFileSync('./data.json',JSON.stringify(data))
+    res.send(`http://${req.hostname}` +'/'+ path)
+})
+
+app.get('/create/style.css',(req,res)=>{
+    res.sendFile(__dirname + '/html/create/style.css')
+})
+
 app.use(allowCrossDomain)
 
 app.get('/upload', (req,res)=>{
 	pw = req.query.pw
-	if(pw === setting.password)res.sendFile(__dirname + '/upload.html')
+	if(pw === setting.password)res.sendFile(__dirname + '/html/upload.html')
 	else res.send('incorrect password,default password is "12345678",use password in query like "example.com/upload?pw=12345678"')
 })
 
 app.post('/upload',upload.single('datajson'),(req,res)=>{
+    if(req.file === undefined)return res.send('error, you doesnt attach file')
     fs.writeFileSync('./data.json',fs.readFileSync(req.file.path))
     fs.remove(req.file.path)
     res.send('succes change url database')
